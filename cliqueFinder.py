@@ -17,13 +17,11 @@ import scipy.sparse as sparse
 def updateEdge(param,  edge,  vec,  V):
     '''Function: quick calculation of the update function: (J*x)_{e} - J_{ee}
     This function takes in an array of parameters (x,y,z), 
-    an edge e as a set, a binary vector vec \in {0,1}^{binom(V,2)} 
+    an edge e as a set, and vec is the location of the non-zero entries in the input vector.
     V (the number of nodes), and returns
     the number Jx_{e} - J_{ee}, to be used in updating the value of x_e in a Hopfield network:
     x_e^{new} = 1 if (J*x)_{e} - J_{ee} > 0, = 0 else. '''
-    '''param is a numpy array, edge is a set, and vec is a binary 0/1 SPARSE COLUMN VECTOR of length n = binom(V,2)'''
-    #NOTE: can be optimized further since x,y,z this case are rationals.
-    #for the moment, store x,y,z as 64 float.
+    '''param is a numpy array, edge is a set, and vec is the location of the non-zero entries in the input vector'''
     x = param[0]
     y = param[1]
     z = param[2]
@@ -37,21 +35,20 @@ def updateEdge(param,  edge,  vec,  V):
     #create the vector of non-zero locations
     row = np.array(range(i) + [i]*(V-i-1) + range(j) + [j]*(V-j-2))
     col = np.array([i]*i + range(i+1,  V) + [j]*j + range(j+1,  i) + range(i+1, V))
-    loc = row*V - row*(row+1)/2 + col - (row+1)    
-    #now create a ROW binom(v,2) \times 1 sparse matrix, with non-zero values x-y
-    data = [x-y]*len(loc)
-    #guys corresponding to the diagonal should get -y
-    #by the requirement i > j, this is always the j position on the row and col
-    data[j] = -y
-    #concatenate into one data file
-    zer = np.array([0]*len(loc)) #a zero list of the correct dimension, to make the sparse vector
-    Jrow = sparse.csr_matrix((data,  (zer,  loc)),  shape = (1,  V*(V-1)/2))    
+    loc = row*V - row*(row+1)/2 + col - (row+1)   
+    loc = loc.astype('int')
+    #make sure loc does not include this current edge
+    loc = set(loc)
+    loc.discard(bn([i,j], V))
+    #check how many of these edges are non-zero
+    setvec = set(vec)
+    numberNeighbors = len(setvec.intersection(set(loc)))
+    totalEdges = len(vec)
     #multiply to get (Jvec)_e - z = [x-y]*vec + y*sum(vec) - z
-    val = (Jrow*vec).toarray() + y * sum(vec.data) - z #TODO: speed up this computation
-    return val.item()
+    return(x*numberNeighbors + y*(totalEdges - numberNeighbors) - 2*z)
 
 def bn(ij,  V):
-    """ Converts an edge (i,j) to an index. NOTE: ij is just a normal list or array, NOTE a set
+    """ Converts an edge (i,j) to an index. NOTE: ij is just a normal list or array, NOT a set
     """
     i = ij[0]
     j = ij[1]
@@ -89,9 +86,23 @@ def isClique(vec, k, V):
     else:
         return False
 
+''' Update graph: 
+    - keep a list of vertex degree and a list of non-zero edges.
+    - for a given edge (i,j), number of neighbors is
+        - \delta(i) + \delta(j) - 2 (if edge is present, 0 otherwise)
+        - number of non-neighbors is the difference
+        - do the update. Toggle the edge from the set of non-zero edges. 
+        - update the vertex degree. 
+    - for synchronous update, can do it simultaneously as follows:
+        - compute the \delta(i) + \delta(j) vector
+        - subtract 2 at locations of edges.    
+    - Thus, the things we keep are:
+        - degree vector (length V)
+        - set of non-zero edges in the bn(ij) indexing system. 
+    '''
 
-#NOTE: sigma is stored in lil format to make it easier to change the sparsity stucture
-#CURRENT VERSION: stored as csc (from the noisyClique call)
+
+
 
 def updateGraph(param, sigma, V, random = False):
     ''' This function iterates through the edges in a lexicographic order and 
@@ -103,11 +114,12 @@ def updateGraph(param, sigma, V, random = False):
     change = True
     while(change != False):
         change = False
+        vec = sigma.nonzero()[0]
         for item in itertools.combinations(np.arange(V),  2):
             edge = set(item)
             #store old value
             oldval = sigma[bn(item,  V),  0]
-            newval = heaviside(updateEdge(param,  edge,  sigma.tocsc(),  V))
+            newval = heaviside(updateEdge(param,  edge, vec,  V))
             if (oldval != newval):
                 sigma[bn(item,  V),  0] = newval
                 change = True

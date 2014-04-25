@@ -1,5 +1,6 @@
-'''Implement the sparse hopfield 3-parameter model. 
-Attempt to find cliques in a bunch of random graph with planted clique
+'''
+This function is the interface for cliqueFinder, which implements the sparse
+3 parameter model for finding the hidden k-clique. 
 '''
 #from time import clock
 import itertools
