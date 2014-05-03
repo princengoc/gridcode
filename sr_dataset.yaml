@@ -1,0 +1,4 @@
+!obj:pylearn2.datasets.csv_dataset.CSVDataset {
+path: %(datapath)s,
+one_hot: True,
+}

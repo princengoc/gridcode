@@ -1,0 +1,12 @@
+!obj:pylearn2.training_algorithms.bgd.BGD {
+        batch_size: 5000,
+        line_search_mode: 'exhaustive',
+        conjugate: 1,
+        monitoring_dataset:
+            {
+                'train' : *train,
+            },
+        termination_criterion: !obj:pylearn2.termination_criteria.MonitorBased {
+channel_name: 'train_y_misclass',
+        }
+    }
