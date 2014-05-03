@@ -19,16 +19,9 @@ presence of an edge in an undirect graph on v nodes. A code word corresponds to 
 simple graph. The desired code words are cliques of size v/2 (or cliques of
 size k in some appropriate range, in general). 
 
-This program trains a single layer neural network (SLN) to map desired code words
-to k-cliques. The training algorithm is perceptron (delta rule), implemented in
-the package neurolab http://code.google.com/p/neurolab/
-
-Given a perturbed grid cell code word w' within a small \ell_2 distance to w,
-let SLN(w') be the input to the Hopfield network, and Hopf(SLN(w')) be 
-the output of the Hopfield dynamic with the given input. 
-
-Ideally, we want Hopf(SLN(w')) = Hopf(w) = clique. This means the Hopfield
-network can be used for decoding the grid cell code.
+This program defines the class Gridcode, which takes sequence lambda, a fraction rho
+(that determines R_\ell), and has functions to compute the code words representing
+the numbers in [0, R_\ell] as a phase vector, as well as a binary representation.
 
 """
 
