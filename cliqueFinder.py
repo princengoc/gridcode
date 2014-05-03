@@ -12,7 +12,7 @@ updateGraph: update all steps
 
 import itertools
 import numpy as np
-import scipy.sparse as sparse
+#import scipy.sparse as sparse
 
 def updateEdge(param,  edge,  vec,  V):
     '''Function: quick calculation of the update function: (J*x)_{e} - J_{ee}
@@ -124,6 +124,39 @@ def updateGraph(param, sigma, V, random = False):
                 sigma[bn(item,  V),  0] = newval
                 change = True
     return sigma
+
+def randomClique(V, vertexList = None):
+    """Takes a vertex list, returns the adjacency matrix (as a flattened list) 
+    of the clique on these vertices. 
+    If vertexList is none, generate the vertices at random,
+    with default clique size V/2"""
+    if(vertexList == None):
+        vertexList = tuple(np.sort(np.random.choice(V, int(V*0,5), replace = False)))
+    edgemat = np.zeros((V,V), dtype = int)
+    for row in vertexList:
+        for col in vertexList:
+            edgemat[row,col] = 1
+    upper = np.triu_indices(V, 1)
+    return (edgemat[upper], vertexList)
+
+def randomVertex(V, frac = 0.5, vxlist = None):
+    """Choose a fraction of vertices at random and returns 
+    the list of indices, plus a vector of length V
+    with 1 at location i if vertex i is in chosen.
+    If vxlist is supplied, replace frac of these at random
+    and return the next vertex list.
+    """
+    if(vxlist == None):
+        indices = np.random.choice(V, int(V*frac), replace = False)
+    else:
+        notin = list(set(range(V)).difference(set(vxlist)))
+        numreplace = int(len(vxlist)*frac)-1
+        indices = vxlist + []
+        np.random.shuffle(indices)
+        np.random.shuffle(notin)
+        indices[0:numreplace] = notin[0:numreplace]
+    vec = [1 if(i in indices) else 0 for i in xrange(V)]                
+    return (list(indices), tuple(vec))
 
 '''Function: take a vertex list and returns a ER(V, p) with the clique being the vertex list'''
 def noisyClique(p, V, vertexList, random = True): #TODO: speed up this step. 
