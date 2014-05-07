@@ -49,6 +49,7 @@ class Gridcode:
         self.goodWord = {}
         self.goodBin = {}
         self.goodZ = {}
+        self.allWord = {}
         
     def numToWord(self, num):
         """Given a number num in [0,R], returns the word representation
@@ -79,10 +80,16 @@ class Gridcode:
         return neighbor
 
     def computeWordDict(self):
-        """Computes self.goodWords, a dictionary mapping integers in [0,r] to words."""
+        """Computes self.goodWord, a dictionary mapping integers in [0,r] to words."""
         if(len(self.goodWord) == 0):
             for num in xrange(self.r):
                 self.goodWord[num] = self.numToWord(num)
+
+    def computeAllWord(self):
+        """Compute self.allWord, a dictionary mapping integers in [0,R] to words."""
+        if(len(self.allWord) == 0):
+            for num in xrange(self.R):
+                self.allWord[num] = self.numToWord(num)
     
     def computeBinaryDict(self):
         """Computes self.goodBin, a dictionary mapping integers in [0,r] to words,
