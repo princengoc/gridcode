@@ -8,6 +8,17 @@ This program solves a system of linear inequalities to
 check if the Hamming(7,4) code
 can be decoded by a Hopfield network on 7 nodes.
 (And similarly for the Hamming 84 code)
+
+Variations:
++1/-1: Equivalent to 0/1, since the Hamiltonian
+in both cases is a symmetric quadratic form
+
+Asymmetric weights: a necessary condition is that
+there is a local decoder for each bit. We check for this condition first.
+(TODO: check the +1/-1 case for asymmetric weights)
+
+Higher order interactions: TODO
+
 """
 
 from cvxopt import matrix, solvers
@@ -68,10 +79,11 @@ class HopfieldSolver:
         self.N = int(n*(n+1)/2)
         self.codeWell = {}
         self.G = []
+        self.Gi = [] #restricted G to check for local solution at ith location
         #names of columns of G as indexed by entries of J
         self._gnames = []
         #dictionary mapping i to indices of gnames containing i
-        self._nameloc = {} 
+        self._nameloc = {}        
 
     @property
     def gnames(self):
@@ -132,7 +144,17 @@ class HopfieldSolver:
             self.G = np.vstack(self.G)*1.0
         return self.G
     
-    def canDecode(self):
+    def genGi(self, i):
+        """Generate a smaller G correspond to a local solution
+        at a given bit"""
+        self.Gi = []
+        for word in self.codewords:
+            self.Gi = self.Gi + [self.flipi(word,i)]
+        self.Gi = np.vstack(self.Gi)*1.0
+        self.Gi = self.Gi[:,self.__nameloc(i)]        
+        return self.Gi
+    
+    def canDecode(self, i = None):
         """Solve the linear program Gx < 0. 
         If infeasible, this means there is no Hopfield network
         that can cope with one-bit corruption of the specified
@@ -140,8 +162,12 @@ class HopfieldSolver:
         If feasible, this means there is such a Hopfield network. 
         The x vector in the solution to the linear program would 
         give one such network"""
-        self.genG()
-        G = matrix(self.G)
+        if(i is None):
+            self.genG()
+            G = matrix(self.G)
+        else:
+            self.genGi(i)
+            G = matrix(self.Gi)
         c = matrix([0.0]*shape(G)[1])
         h = matrix([-1.0]*shape(G)[0])
         sol = solvers.lp(c,G,h)
@@ -149,18 +175,24 @@ class HopfieldSolver:
             return True
         if 'infeasible' in sol['status']:
             return False
-        
-    
-#check feasibility for the Hamming 7,4 code
-hm = Hamming74()
-hm.computeState()
-hs = HopfieldSolver(hm.code, 7)
-hs.canDecode()
-#Infeasible --> no Hopfield network can do 1-bit corruption decoding.
 
-#try Hamming 8,4 code
-hm = Hamming84()
-hm.updateState()
-hm.computeState()
-hs = HopfieldSolver(hm.code, 7)
-hs.canDecode()
+    
+if __name__ == "__main__":
+    #check feasibility for the Hamming 7,4 code
+    hm = Hamming74()
+    hm.computeState()
+    hs = HopfieldSolver(hm.code, 7)
+    hs.canDecode()
+    #Infeasible --> no Hopfield network can do 1-bit decoding.
+    for i in range(7):
+        hs.canDecode(i)
+    #Also infeasible --> no asymmetric networks can do 1-bit decoding
+    
+    #try Hamming 8,4 code
+    hm = Hamming84()
+    hm.updateState()
+    hm.computeState()
+    hs = HopfieldSolver(hm.code, 7)
+    hs.canDecode()
+    #Also infeasible
+
